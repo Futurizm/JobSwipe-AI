@@ -1,0 +1,677 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 201 96% 32%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 201 96% 32%;
+    --radius: 1rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 201 96% 52%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 201 96% 52%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Telegram Mini Apps специфичные стили */
+.telegram-theme {
+  --tg-theme-bg-color: var(--background);
+  --tg-theme-text-color: var(--foreground);
+  --tg-theme-hint-color: var(--muted-foreground);
+  --tg-theme-link-color: var(--primary);
+  --tg-theme-button-color: var(--primary);
+  --tg-theme-button-text-color: var(--primary-foreground);
+}
+
+.telegram-bottom-nav {
+  background-color: var(--tg-theme-bg-color, hsl(var(--background)));
+  color: var(--tg-theme-text-color, hsl(var(--foreground)));
+}
+
+/* Optimized swipe card styles for better performance */
+.swipe-card {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: pan-x;
+  transform: translateZ(0); /* Force hardware acceleration */
+  backface-visibility: hidden;
+}
+
+.swipe-card-content {
+  background-color: white;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+  border-radius: var(--radius);
+  box-shadow: 0 12.5px 20px -10px rgba(50, 50, 73, 0.4),
+    0 10px 10px -10px rgba(50, 50, 73, 0.3);
+  transform: translateZ(0);
+}
+
+.swipe-card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  padding: 1rem;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
+.swipe-card-overlay-like {
+  align-items: flex-end;
+  color: #2ecc71;
+  transform: translateX(-20px) rotate(-10deg);
+  opacity: 0;
+  transition: all 0.15s ease-out;
+}
+
+.swipe-card-overlay-nope {
+  align-items: flex-start;
+  color: #e74c3c;
+  transform: translateX(20px) rotate(10deg);
+  opacity: 0;
+  transition: all 0.15s ease-out;
+}
+
+.swipe-card-overlay-like.active {
+  opacity: 1;
+  transform: translateX(0) rotate(-10deg);
+}
+
+.swipe-card-overlay-nope.active {
+  opacity: 1;
+  transform: translateX(0) rotate(10deg);
+}
+
+.match-percentage {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 1.125rem;
+  background: conic-gradient(
+    var(--match-color) var(--match-percentage),
+    rgba(255, 255, 255, 0.3) 0
+  );
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.match-percentage::before {
+  content: "";
+  position: absolute;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background-color: white;
+}
+
+.match-percentage-text {
+  position: relative;
+  z-index: 1;
+}
+
+/* Bottom navigation bar */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4rem;
+  background-color: hsl(var(--background));
+  border-top: 1px solid hsl(var(--border));
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 1rem;
+  z-index: 50;
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+  color: hsl(var(--muted-foreground));
+  transition: color 0.2s ease;
+}
+
+.bottom-nav-item.active {
+  color: hsl(var(--primary));
+}
+
+.bottom-nav-item-icon {
+  margin-bottom: 0.25rem;
+}
+
+.bottom-nav-item-text {
+  font-size: 0.75rem;
+}
+
+/* Course card */
+.course-card {
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.course-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.course-card-image {
+  height: 160px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.course-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1rem;
+  color: white;
+}
+
+.course-progress {
+  height: 0.5rem;
+  background-color: hsl(var(--muted));
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.course-progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(to right, hsl(var(--primary)), #38bdf8);
+}
+
+/* Skill tag */
+.skill-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.skill-tag.matched {
+  background-color: rgba(56, 189, 248, 0.2);
+  color: #0284c7;
+}
+
+/* Resume upload animation */
+.resume-upload-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.resume-upload-card {
+  width: 90%;
+  max-width: 400px;
+  background-color: hsl(var(--background));
+  border-radius: var(--radius);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.resume-upload-progress {
+  height: 0.5rem;
+  background-color: hsl(var(--muted));
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.resume-upload-progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #3498db, #38bdf8);
+  transition: width 0.5s ease;
+}
+
+.resume-upload-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.resume-upload-success-icon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background-color: rgba(46, 204, 113, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  color: #2ecc71;
+}
+
+/* Course preview */
+.course-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.course-preview-card {
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  background-color: hsl(var(--background));
+  border-radius: var(--radius);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.course-preview-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.course-preview-header {
+  height: 200px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.course-preview-header-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.4));
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  color: white;
+}
+
+.course-preview-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.course-preview-close:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.course-preview-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid hsl(var(--border));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Cover Letter Generator */
+.cover-letter-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.cover-letter-card {
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  background-color: hsl(var(--background));
+  border-radius: var(--radius);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cover-letter-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid hsl(var(--border));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cover-letter-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.cover-letter-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid hsl(var(--border));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cover-letter-close {
+  background-color: hsl(var(--muted));
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.cover-letter-close:hover {
+  background-color: hsl(var(--muted-foreground / 20));
+}
+
+.cover-letter-loading {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background-color: hsl(var(--primary / 10));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Job Match Radar */
+.job-radar-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.job-radar-card {
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  background-color: hsl(var(--background));
+  border-radius: var(--radius);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.job-radar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid hsl(var(--border));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.job-radar-content {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 70vh;
+}
+
+.job-radar-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid hsl(var(--border));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.job-radar-close {
+  background-color: hsl(var(--muted));
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.job-radar-close:hover {
+  background-color: hsl(var(--muted-foreground / 20));
+}
+
+.radar-animation {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.radar-circle {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid hsl(var(--primary / 30));
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.radar-line {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50%;
+  height: 2px;
+  background: linear-gradient(to right, hsl(var(--primary)), transparent);
+  transform-origin: left center;
+  animation: rotate 3s infinite linear;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.radar-progress {
+  height: 0.5rem;
+  background-color: hsl(var(--muted));
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.radar-progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(to right, hsl(var(--primary)), #38bdf8);
+  transition: width 0.5s ease;
+}
+
+.match-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  height: 1.5rem;
+  padding: 0 0.5rem;
+  color: white;
+}
+
+/* Application card styles */
+.application-card {
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--card));
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.application-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+/* Optimized animations for better performance */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.pulse-animation {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.slide-up {
+  animation: slideUp 0.5s ease forwards;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Hardware acceleration for better performance */
+.w-full.h-full.bg-card.rounded-xl {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Smooth transitions */
+.swipe-card-overlay-like,
+.swipe-card-overlay-nope {
+  will-change: opacity, transform;
+}
