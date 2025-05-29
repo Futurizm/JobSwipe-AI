@@ -50,9 +50,8 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { getStoredToken, getUserInfo, getUserResumes } from "@/lib/headhunter"
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import { GOOGLE_API_KEY } from "@/constants/constants"
 
-// Google API Key for AI recommendations
-const GOOGLE_API_KEY = "AIzaSyCLIB1yGy-lyyXbyWr5mebsmC46GCHx6Dk"
 const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY)
 
 interface ResumeData {

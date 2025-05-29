@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import puppeteer from "puppeteer";
+import { GOOGLE_API_KEY } from "@/constants/constants"
 
-// Initialize Google Generative AI
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "AIzaSyCLIB1yGy-lyyXbyWr5mebsmC46GCHx6Dk");
 
 interface ResumeData {
   fullName: string;

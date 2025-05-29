@@ -1,8 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI } from "@google/generative-ai"
-
-// Google API Key
-const GOOGLE_API_KEY = "AIzaSyCLIB1yGy-lyyXbyWr5mebsmC46GCHx6Dk"
+import { GOOGLE_API_KEY } from "@/constants/constants"
 
 // Initialize the Google Generative AI
 const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY)
