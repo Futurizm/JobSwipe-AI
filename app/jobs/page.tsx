@@ -3,28 +3,14 @@
 import type React from "react"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
-import {
-  ArrowLeft,
-  Briefcase,
-  Check,
-  Clock,
-  DollarSign,
-  ExternalLink,
-  FileText,
-  MapPin,
-  Search,
-  X,
-  Plus,
-  Minus,
-  Loader2,
-  TrendingUp,
-  Star,
-  Users,
-} from "lucide-react"
+import { useDebounce } from "@/hooks/use-debounce"
+import { ArrowLeft, Briefcase, Check, Clock, DollarSign, ExternalLink, FileText, MapPin, Search, X, Plus, Minus, Loader2, TrendingUp, Star, Users, RefreshCw } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion"
 import {
@@ -172,6 +158,8 @@ export default function JobsPage() {
   const [analysisLoading, setAnalysisLoading] = useState<{ [key: string]: boolean }>({})
   const [professions, setProfessions] = useState<Profession[]>([])
   const [professionsLoading, setProfessionsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [initialLoad, setInitialLoad] = useState(true)
 
   // Reference to track if component is mounted
   const isMounted = useRef(false)
@@ -184,6 +172,9 @@ export default function JobsPage() {
   const currentJobData = useMemo(() => {
     return jobs[currentIndex] || null
   }, [jobs, currentIndex])
+
+  // Дебаунсинг для поиска (если будет добавлен поиск)
+  const debouncedResumeSkills = useDebounce(resumeSkills, 500)
 
   // Load resume data from localStorage
   useEffect(() => {
@@ -223,14 +214,179 @@ export default function JobsPage() {
     }
   }, [])
 
-  // Fetch jobs and resumes
+  // Оптимизированная функция загрузки вакансий
+  const fetchJobsOptimized = useCallback(async (): Promise<any[]> => {
+    try {
+      const tokenData = getStoredToken()
+      if (!tokenData) {
+        return MOCK_JOBS
+      }
+
+      // Get user's preferred city from settings or localStorage
+      const userCity = localStorage.getItem("userCity") || "Павлодар"
+
+      // Prepare search parameters for Kazakhstan cities
+      const searchParams: any = { per_page: 50 } // Увеличиваем количество за раз
+
+      // If we have resume skills, use them for search
+      if (debouncedResumeSkills.length > 0) {
+        const skillsForSearch = debouncedResumeSkills.slice(0, 3).join(" ")
+        searchParams.text = skillsForSearch
+      }
+
+      let fetchedJobs: any[] = []
+
+      try {
+        // First, try to get vacancies from user's specific city in Kazakhstan
+        const cityAreaId = getKazakhstanCityAreaId(userCity)
+        if (cityAreaId) {
+          searchParams.area = cityAreaId
+          console.log(`Searching for jobs in ${userCity} (area: ${cityAreaId})`)
+
+          const cityVacanciesResponse = await getVacancies(tokenData.access_token, searchParams)
+          fetchedJobs = cityVacanciesResponse.items.map(convertHHVacancyToJob)
+
+          console.log(`Found ${fetchedJobs.length} jobs in ${userCity}`)
+        }
+
+        // If we don't have enough jobs from the specific city, expand to all Kazakhstan
+        if (fetchedJobs.length < 20) {
+          console.log(`Not enough jobs in ${userCity}, expanding search to all Kazakhstan`)
+
+          // Search in all major Kazakhstan cities
+          const kazakhstanAreaId = "40" // Kazakhstan country code
+          searchParams.area = kazakhstanAreaId
+
+          const kazakhstanVacanciesResponse = await getVacancies(tokenData.access_token, searchParams)
+          const kazakhstanJobs = kazakhstanVacanciesResponse.items.map(convertHHVacancyToJob)
+
+          // Filter out jobs we already have from the city search
+          const newJobs = kazakhstanJobs.filter(
+            (job) => !fetchedJobs.some((existingJob) => existingJob.id === job.id),
+          )
+
+          fetchedJobs = [...fetchedJobs, ...newJobs]
+          console.log(`Total jobs after expanding to Kazakhstan: ${fetchedJobs.length}`)
+        }
+
+        // If still not enough, try without area restriction but with Kazakhstan-specific keywords
+        if (fetchedJobs.length < 30) {
+          console.log("Adding more Kazakhstan jobs with broader search")
+
+          delete searchParams.area
+          searchParams.text = (searchParams.text || "") + " Казахстан OR Алматы OR Астана OR Шымкент"
+
+          const broadVacanciesResponse = await getVacancies(tokenData.access_token, searchParams)
+          const broadJobs = broadVacanciesResponse.items.map(convertHHVacancyToJob).filter(
+            (job) =>
+              isKazakhstanLocation(job.location) && !fetchedJobs.some((existingJob) => existingJob.id === job.id),
+          )
+
+          fetchedJobs = [...fetchedJobs, ...broadJobs]
+          console.log(`Final job count: ${fetchedJobs.length}`)
+        }
+
+        return fetchedJobs
+      } catch (searchError) {
+        console.error("Error in Kazakhstan job search:", searchError)
+        // Fallback to general search if Kazakhstan-specific search fails
+        delete searchParams.area
+        const fallbackResponse = await getVacancies(tokenData.access_token, searchParams)
+        return fallbackResponse.items
+          .map(convertHHVacancyToJob)
+          .filter((job) => isKazakhstanLocation(job.location))
+      }
+    } catch (error) {
+      console.error("Error fetching jobs:", error)
+      throw error
+    }
+  }, [debouncedResumeSkills])
+
+  // Load professions based on resume (асинхронно)
+  const loadProfessions = useCallback(async (): Promise<void> => {
+    setProfessionsLoading(true)
+
+    try {
+      const storedResumeData = localStorage.getItem("resumeData")
+
+      if (!storedResumeData) {
+        // Быстрые дефолтные профессии
+        setProfessions([
+          {
+            id: 1,
+            title: "Frontend Developer",
+            description: "Разработка пользовательских интерфейсов для веб-приложений",
+            matchPercentage: 85,
+            averageSalary: "120 000 - 200 000 ₽",
+            demandLevel: "Высокий",
+            requiredSkills: ["JavaScript", "React", "HTML", "CSS"],
+            growthProspects: "Отличные перспективы роста в IT-сфере",
+            vacanciesCount: 1250,
+          },
+          {
+            id: 2,
+            title: "UX/UI Designer",
+            description: "Создание интуитивных и привлекательных пользовательских интерфейсов",
+            matchPercentage: 75,
+            averageSalary: "100 000 - 180 000 ₽",
+            demandLevel: "Высокий",
+            requiredSkills: ["Figma", "Adobe XD", "Prototyping"],
+            growthProspects: "Растущий спрос на UX/UI специалистов",
+            vacanciesCount: 890,
+          },
+        ])
+        return
+      }
+
+      const resumeData = JSON.parse(storedResumeData)
+
+      // Загружаем профессии асинхронно
+      const response = await fetch("/api/professions/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeData }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.professions) {
+          setProfessions(result.professions)
+        }
+      }
+    } catch (error) {
+      console.error("Error loading professions:", error)
+      // Используем дефолтные профессии при ошибке
+      setProfessions([
+        {
+          id: 1,
+          title: "Frontend Developer",
+          description: "Разработка пользовательских интерфейсов для веб-приложений",
+          matchPercentage: 85,
+          averageSalary: "120 000 - 200 000 ₽",
+          demandLevel: "Высокий",
+          requiredSkills: ["JavaScript", "React", "HTML", "CSS"],
+          growthProspects: "Отличные перспективы роста в IT-сфере",
+          vacanciesCount: 1250,
+        },
+      ])
+    } finally {
+      setProfessionsLoading(false)
+    }
+  }, [])
+
+  // Fetch jobs and resumes (оптимизированная версия)
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
+      setError(null)
+
       try {
+        // Запускаем загрузку профессий в фоне (неблокирующая)
+        loadProfessions()
+
         const tokenData = getStoredToken()
         if (tokenData) {
-          // Fetch user resumes first
+          // Fetch user resumes first (быстрая операция)
           const resumesResponse = await getUserResumes(tokenData.access_token)
           setUserResumes(resumesResponse.items || [])
 
@@ -240,96 +396,36 @@ export default function JobsPage() {
             setSelectedResumeId(publishedResume.id)
           }
 
-          // Get user's preferred city from settings or localStorage
-          const userCity = localStorage.getItem("userCity") || "Павлодар"
-
-          // Prepare search parameters for Kazakhstan cities
-          const searchParams: any = { per_page: 20 }
-
-          // If we have resume skills, use them for search
-          if (resumeSkills.length > 0) {
-            const skillsForSearch = resumeSkills.slice(0, 3).join(" ")
-            searchParams.text = skillsForSearch
-          }
-
-          let fetchedJobs: any[] = []
-
-          try {
-            // First, try to get vacancies from user's specific city in Kazakhstan
-            const cityAreaId = getKazakhstanCityAreaId(userCity)
-            if (cityAreaId) {
-              searchParams.area = cityAreaId
-              console.log(`Searching for jobs in ${userCity} (area: ${cityAreaId})`)
-
-              const cityVacanciesResponse = await getVacancies(tokenData.access_token, searchParams)
-              fetchedJobs = cityVacanciesResponse.items.map(convertHHVacancyToJob)
-
-              console.log(`Found ${fetchedJobs.length} jobs in ${userCity}`)
-            }
-
-            // If we don't have enough jobs from the specific city, expand to all Kazakhstan
-            if (fetchedJobs.length < 10) {
-              console.log(`Not enough jobs in ${userCity}, expanding search to all Kazakhstan`)
-
-              // Search in all major Kazakhstan cities
-              const kazakhstanAreaId = "40" // Kazakhstan country code
-              searchParams.area = kazakhstanAreaId
-
-              const kazakhstanVacanciesResponse = await getVacancies(tokenData.access_token, searchParams)
-              const kazakhstanJobs = kazakhstanVacanciesResponse.items.map(convertHHVacancyToJob)
-
-              // Filter out jobs we already have from the city search
-              const newJobs = kazakhstanJobs.filter(
-                (job) => !fetchedJobs.some((existingJob) => existingJob.id === job.id),
-              )
-
-              fetchedJobs = [...fetchedJobs, ...newJobs]
-              console.log(`Total jobs after expanding to Kazakhstan: ${fetchedJobs.length}`)
-            }
-
-            // If still not enough, try without area restriction but with Kazakhstan-specific keywords
-            if (fetchedJobs.length < 15) {
-              console.log("Adding more Kazakhstan jobs with broader search")
-
-              delete searchParams.area
-              searchParams.text = (searchParams.text || "") + " Казахстан OR Алматы OR Астана OR Шымкент"
-
-              const broadVacanciesResponse = await getVacancies(tokenData.access_token, searchParams)
-              const broadJobs = broadVacanciesResponse.items.map(convertHHVacancyToJob).filter(
-                (job) =>
-                  isKazakhstanLocation(job.location) && !fetchedJobs.some((existingJob) => existingJob.id === job.id),
-              )
-
-              fetchedJobs = [...fetchedJobs, ...broadJobs]
-              console.log(`Final job count: ${fetchedJobs.length}`)
-            }
-          } catch (searchError) {
-            console.error("Error in Kazakhstan job search:", searchError)
-            // Fallback to general search if Kazakhstan-specific search fails
-            delete searchParams.area
-            const fallbackResponse = await getVacancies(tokenData.access_token, searchParams)
-            fetchedJobs = fallbackResponse.items
-              .map(convertHHVacancyToJob)
-              .filter((job) => isKazakhstanLocation(job.location))
-          }
-
+          // Загружаем вакансии оптимизированным способом
+          const fetchedJobs = await fetchJobsOptimized()
           setJobs(fetchedJobs)
 
-          // Check which jobs user has already applied to (both API and local)
+          // Check which jobs user has already applied to (асинхронно)
           const appliedJobIds: string[] = []
-          for (const job of fetchedJobs) {
-            const hasAppliedAPI = await hasAppliedToVacancy(tokenData.access_token, job.id)
-            const hasAppliedLocal = hasAppliedToVacancyLocal(job.id)
-            if (hasAppliedAPI || hasAppliedLocal) {
-              appliedJobIds.push(job.id)
+          const checkApplications = async () => {
+            for (const job of fetchedJobs.slice(0, 10)) { // Проверяем только первые 10 для скорости
+              try {
+                const hasAppliedAPI = await hasAppliedToVacancy(tokenData.access_token, job.id)
+                const hasAppliedLocal = hasAppliedToVacancyLocal(job.id)
+                if (hasAppliedAPI || hasAppliedLocal) {
+                  appliedJobIds.push(job.id)
+                }
+              } catch (error) {
+                // Игнорируем ошибки проверки заявок
+                console.warn("Error checking application status:", error)
+              }
             }
+            setAppliedJobs(appliedJobIds)
           }
-          setAppliedJobs(appliedJobIds)
+
+          // Запускаем проверку заявок в фоне
+          checkApplications()
         } else {
           setJobs(MOCK_JOBS)
         }
       } catch (error) {
         console.error("Error fetching data:", error)
+        setError("Не удалось загрузить вакансии")
         setJobs(MOCK_JOBS)
         toast({
           title: "Ошибка загрузки",
@@ -339,11 +435,12 @@ export default function JobsPage() {
       } finally {
         setLoading(false)
         setSwipeEnabled(true)
+        setInitialLoad(false)
       }
     }
 
     fetchData()
-  }, [toast, resumeSkills.length])
+  }, [toast, fetchJobsOptimized, loadProfessions])
 
   // Generate analysis for current job when it changes
   useEffect(() => {
@@ -367,82 +464,6 @@ export default function JobsPage() {
       isMounted.current = false
     }
   }, [loading, jobs.length, x])
-
-  // Load professions based on resume
-  const loadProfessions = useCallback(async () => {
-    setProfessionsLoading(true)
-    try {
-      const storedResumeData = localStorage.getItem("resumeData")
-      if (!storedResumeData) {
-        setProfessions([
-          {
-            id: 1,
-            title: "Frontend Developer",
-            description: "Разработка пользовательских интерфейсов для веб-приложений",
-            matchPercentage: 85,
-            averageSalary: "120 000 - 200 000 ₽",
-            demandLevel: "Высокий" as const,
-            requiredSkills: ["JavaScript", "React", "HTML", "CSS"],
-            growthProspects: "Отличные перспективы роста в IT-сфере",
-            vacanciesCount: 1250,
-          },
-          {
-            id: 2,
-            title: "UX/UI Designer",
-            description: "Создание интуитивных и привлекательных пользовательских интерфейсов",
-            matchPercentage: 75,
-            averageSalary: "100 000 - 180 000 ₽",
-            demandLevel: "Высокий" as const,
-            requiredSkills: ["Figma", "Adobe XD", "Prototyping"],
-            growthProspects: "Растущий спрос на UX/UI специалистов",
-            vacanciesCount: 890,
-          },
-        ])
-        setProfessionsLoading(false)
-        return
-      }
-
-      const resumeData = JSON.parse(storedResumeData)
-      const response = await fetch("/api/professions/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ resumeData }),
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        if (result.success && result.professions) {
-          setProfessions(result.professions)
-        }
-      } else {
-        throw new Error("Failed to load professions")
-      }
-    } catch (error) {
-      console.error("Error loading professions:", error)
-      setProfessions([
-        {
-          id: 1,
-          title: "Frontend Developer",
-          description: "Разработка пользовательских интерфейсов для веб-приложений",
-          matchPercentage: 85,
-          averageSalary: "120 000 - 200 000 ₽",
-          demandLevel: "Высокий" as const,
-          requiredSkills: ["JavaScript", "React", "HTML", "CSS"],
-          growthProspects: "Отличные перспективы роста в IT-сфере",
-          vacanciesCount: 1250,
-        },
-      ])
-    } finally {
-      setProfessionsLoading(false)
-    }
-  }, [])
-
-  // Load professions when component mounts
-  useEffect(() => {
-    loadProfessions()
-  }, [loadProfessions])
 
   // Helper functions for professions
   const getDemandColor = useCallback((level: string) => {
@@ -671,6 +692,22 @@ export default function JobsPage() {
       setSwipeEnabled(true)
     }
   }, [swipeEnabled])
+
+  // Функция повтора загрузки
+  const handleRetry = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const fetchedJobs = await fetchJobsOptimized()
+      setJobs(fetchedJobs)
+      setCurrentIndex(0)
+    } catch (error) {
+      setError("Не удалось загрузить вакансии")
+      setJobs(MOCK_JOBS)
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchJobsOptimized])
 
   // Форматирование зарплаты для отображения
   const formatSalary = (salary: string) => {
