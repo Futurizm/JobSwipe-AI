@@ -4,15 +4,17 @@ import type React from "react"
 
 import { Suspense, useState } from "react"
 import Link from "next/link"
-import { ArrowRight, Upload } from "lucide-react"
+import { ArrowRight, FileText, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import WelcomeAnimation from "@/components/welcome-animation"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ResumeUploadDialog } from "@/components/resume-upload-dialog"
 import { HHAuthStatus } from "@/components/hh-auth-status"
+import { ResumeBuilderChat } from "@/components/resume-builder-chat"
 
 export default function Home() {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
+    const [isResumeBuilderOpen, setIsResumeBuilderOpen] = useState(false)
   const [fileName, setFileName] = useState("")
   const [selectedFile, setSelectedFile] = useState<File | undefined>(undefined)
 
@@ -42,8 +44,16 @@ export default function Home() {
             <p className="text-lg text-muted-foreground">Найди работу мечты одним свайпом</p>
           </div>
 
-          <div className="w-full space-y-4 pt-6">
-            <Button className="w-full h-14 text-lg gap-2 bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 border-none">
+          <Button
+              className="w-full h-14 text-lg gap-2 bg-gradient-to-r from-green-500 to-emerald-400 hover:from-green-600 hover:to-emerald-500 border-none"
+              onClick={() => setIsResumeBuilderOpen(true)}
+            >
+              <FileText className="h-5 w-5" />
+              Создать резюме
+            </Button>
+
+          <div className="w-full space-y-4">
+            <Button className="w-full  h-14 text-lg gap-2 bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 border-none">
               <label className="flex items-center gap-2 cursor-pointer">
                 <Upload className="h-5 w-5" />
                 Загрузить резюме
@@ -53,16 +63,7 @@ export default function Home() {
 
             <HHAuthStatus />
 
-            <Button asChild variant="outline" className="w-full h-14 text-lg gap-2 border-2">
-              <Link href="/jobs">
-                Начать поиск
-                <ArrowRight className="h-5 w-5" />
-              </Link>
-            </Button>
-
-            <Button asChild variant="ghost" className="w-full h-14 text-lg">
-              <Link href="/settings">Настройки поиска</Link>
-            </Button>
+           
           </div>
 
           <p className="text-sm text-muted-foreground pt-4">
@@ -71,12 +72,14 @@ export default function Home() {
         </div>
       </div>
 
-      <ResumeUploadDialog
+     <ResumeUploadDialog
         isOpen={isUploadDialogOpen}
         onClose={() => setIsUploadDialogOpen(false)}
         fileName={fileName}
         file={selectedFile}
       />
+
+      <ResumeBuilderChat isOpen={isResumeBuilderOpen} onClose={() => setIsResumeBuilderOpen(false)} />
     </main>
   )
 }

@@ -38,7 +38,7 @@ export default function AuthCallbackPage() {
 
         // Redirect after a short delay
         setTimeout(() => {
-          router.push("/jobs")
+          router.push("/")
         }, 2000)
       })
       .catch((error) => {

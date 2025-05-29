@@ -20,7 +20,7 @@ export function BottomNavbar() {
       active: pathname === "/jobs",
     },
     {
-      name: "Курсы",
+      name: "Новости",
       href: "/courses",
       icon: <BookOpen className="h-5 w-5" />,
       active: pathname === "/courses",

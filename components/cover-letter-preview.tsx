@@ -1,69 +1,54 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import {
-  Check,
-  Copy,
-  Edit3,
-  FileText,
-  Loader2,
-  Send,
-  Sparkles,
-  X,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import { Check, Copy, Edit3, FileText, Loader2, Send, Sparkles, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface CoverLetterPreviewProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onApply: (coverLetter: string) => Promise<void>;
+  isOpen: boolean
+  onClose: () => void
+  onApply: (coverLetter: string) => Promise<void>
   job: {
-    id: string;
-    title: string;
-    company: string;
-    description: string;
-    requirements: string[];
-  };
-  isApplying: boolean;
+    id: string
+    title: string
+    company: string
+    description: string
+    requirements: string[]
+  }
+  isApplying: boolean
 }
 
-export function CoverLetterPreview({
-  isOpen,
-  onClose,
-  onApply,
-  job,
-  isApplying,
-}: CoverLetterPreviewProps) {
-  const [coverLetter, setCoverLetter] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [editedLetter, setEditedLetter] = useState("");
+export function CoverLetterPreview({ isOpen, onClose, onApply, job, isApplying }: CoverLetterPreviewProps) {
+  const [coverLetter, setCoverLetter] = useState("")
+  const [isEditing, setIsEditing] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [editedLetter, setEditedLetter] = useState("")
 
   // Generate cover letter when dialog opens
   useEffect(() => {
     if (isOpen && !coverLetter) {
-      generateCoverLetter();
+      generateCoverLetter()
     }
-  }, [isOpen]);
+  }, [isOpen])
 
   const generateCoverLetter = async () => {
-    setIsGenerating(true);
+    setIsGenerating(true)
 
     try {
       // Get resume data from localStorage
-      const storedResumeData = localStorage.getItem("resumeData");
-      let resumeData = null;
+      const storedResumeData = localStorage.getItem("resumeData")
+      let resumeData = null
 
       if (storedResumeData) {
         try {
-          resumeData = JSON.parse(storedResumeData);
+          resumeData = JSON.parse(storedResumeData)
         } catch (error) {
-          console.error("Error parsing resume data:", error);
+          console.error("Error parsing resume data:", error)
         }
       }
 
@@ -78,32 +63,32 @@ export function CoverLetterPreview({
             resumeData,
             vacancyData: job,
           }),
-        });
+        })
 
         if (response.ok) {
-          const result = await response.json();
+          const result = await response.json()
           if (result.success && result.coverLetter) {
-            setCoverLetter(result.coverLetter);
-            setEditedLetter(result.coverLetter);
-            setIsGenerating(false);
-            return;
+            setCoverLetter(result.coverLetter)
+            setEditedLetter(result.coverLetter)
+            setIsGenerating(false)
+            return
           }
         }
       }
 
       // Fallback to template letter
-      const fallbackLetter = generateFallbackLetter();
-      setCoverLetter(fallbackLetter);
-      setEditedLetter(fallbackLetter);
+      const fallbackLetter = generateFallbackLetter()
+      setCoverLetter(fallbackLetter)
+      setEditedLetter(fallbackLetter)
     } catch (error) {
-      console.error("Error generating cover letter:", error);
-      const fallbackLetter = generateFallbackLetter();
-      setCoverLetter(fallbackLetter);
-      setEditedLetter(fallbackLetter);
+      console.error("Error generating cover letter:", error)
+      const fallbackLetter = generateFallbackLetter()
+      setCoverLetter(fallbackLetter)
+      setEditedLetter(fallbackLetter)
     } finally {
-      setIsGenerating(false);
+      setIsGenerating(false)
     }
-  };
+  }
 
   const generateFallbackLetter = () => {
     return `Уважаемый работодатель,
@@ -117,95 +102,86 @@ export function CoverLetterPreview({
 Буду рад обсудить мою кандидатуру на личном собеседовании. Спасибо за рассмотрение моего обращения.
 
 С уважением,
-[Ваше имя]`;
-  };
+[Ваше имя]`
+  }
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(isEditing ? editedLetter : coverLetter);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+    navigator.clipboard.writeText(isEditing ? editedLetter : coverLetter)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const handleSave = () => {
-    setCoverLetter(editedLetter);
-    setIsEditing(false);
-  };
+    setCoverLetter(editedLetter)
+    setIsEditing(false)
+  }
 
   const handleCancel = () => {
-    setEditedLetter(coverLetter);
-    setIsEditing(false);
-  };
+    setEditedLetter(coverLetter)
+    setIsEditing(false)
+  }
 
   const handleApply = async () => {
-    const letterToSend = isEditing ? editedLetter : coverLetter;
-    await onApply(letterToSend);
-  };
+    const letterToSend = isEditing ? editedLetter : coverLetter
+    await onApply(letterToSend)
+  }
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   return (
     <motion.div
-      className="cover-letter-overlay"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className="cover-letter-card"
+        className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-xl flex flex-col"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <div className="cover-letter-header">
-          <div className="flex items-center gap-2">
+        {/* Header - Fixed */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-center gap-3">
             <div className="p-2 rounded-full bg-primary/10 text-primary">
               <FileText className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Сопроводительное письмо</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="text-xl font-bold text-gray-900">Сопроводительное письмо</h2>
+              <p className="text-sm text-gray-500">
                 {job.company} • {job.title}
               </p>
             </div>
           </div>
-          <button className="cover-letter-close" onClick={onClose}>
-            <X className="h-5 w-5" />
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <X className="h-5 w-5 text-gray-500" />
           </button>
         </div>
 
-        <div className="cover-letter-content">
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-6">
           {isGenerating ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <div className="cover-letter-loading">
+              <div className="mb-4">
                 <Sparkles className="h-8 w-8 text-primary animate-pulse" />
               </div>
-              <h3 className="text-lg font-medium mt-4 mb-2">
-                Генерируем письмо
-              </h3>
-              <p className="text-muted-foreground text-center">
-                Создаем персонализированное сопроводительное письмо на основе
-                вашего резюме...
+              <h3 className="text-lg font-medium mb-2 text-gray-900">Генерируем письмо</h3>
+              <p className="text-gray-500 text-center">
+                Создаем персонализированное сопроводительное письмо на основе вашего резюме...
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className="bg-primary/10 text-primary border-primary/20"
-                  >
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                     {job.title}
                   </Badge>
                   <Badge variant="outline">{job.company}</Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCopy}
-                    className="gap-1"
-                  >
+                  <Button variant="ghost" size="sm" onClick={handleCopy} className="gap-1">
                     {copied ? (
                       <>
                         <Check className="h-4 w-4" />
@@ -219,12 +195,7 @@ export function CoverLetterPreview({
                     )}
                   </Button>
                   {!isEditing && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsEditing(true)}
-                      className="gap-1"
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="gap-1">
                       <Edit3 className="h-4 w-4" />
                       Редактировать
                     </Button>
@@ -245,19 +216,15 @@ export function CoverLetterPreview({
                       <Check className="mr-2 h-4 w-4" />
                       Сохранить
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleCancel}
-                      className="flex-1"
-                    >
+                    <Button variant="outline" onClick={handleCancel} className="flex-1">
                       Отмена
                     </Button>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="p-4 bg-muted/30 rounded-lg border">
-                    <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed">
+                  <div className="p-4 bg-gray-50 rounded-lg border">
+                    <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed text-gray-700">
                       {coverLetter}
                     </pre>
                   </div>
@@ -267,25 +234,24 @@ export function CoverLetterPreview({
           )}
         </div>
 
-        <div className="cover-letter-footer">
+        {/* Footer - Fixed */}
+        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1 text-xs text-gray-500">
               <Sparkles className="h-3 w-3" />
               <span>Персонализировано ИИ</span>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={onClose} className="min-w-[100px]">
               Отмена
             </Button>
             <Button
               onClick={handleApply}
-              disabled={
-                isApplying || isGenerating || (!coverLetter && !editedLetter)
-              }
+              disabled={isApplying || isGenerating || (!coverLetter && !editedLetter)}
               className={cn(
-                "gap-2 bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500",
-                isApplying && "opacity-50"
+                "bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 min-w-[110px]",
+                isApplying && "opacity-50",
               )}
             >
               {isApplying ? (
@@ -296,7 +262,7 @@ export function CoverLetterPreview({
               ) : (
                 <>
                   <Send className="h-4 w-4" />
-                  Отправить отклик
+                  Отклик
                 </>
               )}
             </Button>
@@ -304,5 +270,5 @@ export function CoverLetterPreview({
         </div>
       </motion.div>
     </motion.div>
-  );
+  )
 }

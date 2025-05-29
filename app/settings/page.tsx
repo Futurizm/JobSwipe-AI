@@ -13,16 +13,27 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 
 const CITIES = [
-  "Москва",
-  "Санкт-Петербург",
-  "Новосибирск",
-  "Екатеринбург",
-  "Казань",
-  "Нижний Новгород",
-  "Челябинск",
-  "Самара",
-  "Омск",
-  "Ростов-на-Дону",
+  "Алматы",
+  "Астана",
+  "Нур-Султан",
+  "Шымкент",
+  "Караганда",
+  "Актобе",
+  "Тараз",
+  "Павлодар",
+  "Усть-Каменогорск",
+  "Семей",
+  "Атырау",
+  "Костанай",
+  "Кызылорда",
+  "Уральск",
+  "Петропавловск",
+  "Актау",
+  "Темиртау",
+  "Туркестан",
+  "Кокшетау",
+  "Талдыкорган",
+  "Экибастуз",
 ]
 
 const CATEGORIES = [
@@ -82,9 +93,24 @@ export default function SettingsPage() {
   }
 
   const handleSaveSettings = () => {
-    // In a real app, we would save these settings to a backend or local storage
-    // For now, just navigate back to the search page
-    router.push("/search")
+    // Save city preference to localStorage
+    localStorage.setItem("userCity", selectedCity)
+
+    // Save other settings as needed
+    const settings = {
+      city: selectedCity,
+      salaryRange,
+      category: selectedCategory,
+      experience: selectedExperience,
+      employmentTypes: selectedEmploymentTypes,
+      remoteOnly,
+      skills,
+    }
+
+    localStorage.setItem("userSettings", JSON.stringify(settings))
+
+    // Navigate back to the search page
+    router.push("/jobs")
   }
 
   return (

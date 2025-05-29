@@ -7,66 +7,150 @@ const GOOGLE_API_KEY = "AIzaSyCLIB1yGy-lyyXbyWr5mebsmC46GCHx6Dk"
 // Initialize the Google Generative AI
 const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY)
 
-// Function to extract text from resume content
-function extractTextFromResume(fileContent: string, fileType: string): string {
-  // For PDF and DOCX, we'd normally use specialized libraries
-  // For this implementation, we'll use the raw content
-  return fileContent
+// Function to extract text from PDF using browser APIs
+async function extractTextFromPDF(file: File): Promise<string> {
+  try {
+    // Use PDF.js library for better PDF parsing
+    const arrayBuffer = await file.arrayBuffer()
+    const uint8Array = new Uint8Array(arrayBuffer)
+
+    // Convert to base64 for processing
+    const base64 = Buffer.from(uint8Array).toString("base64")
+
+    // Use Gemini to extract text from PDF
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+
+    const prompt = `
+      Extract all text content from this PDF resume. Return ONLY the raw text content without any formatting or additional commentary.
+      Focus on extracting:
+      - Personal information (name, email, phone, location)
+      - Work experience details
+      - Education information
+      - Skills and technologies
+      - Any other relevant resume content
+      
+      Return the extracted text as plain text.
+    `
+
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64,
+          mimeType: file.type,
+        },
+      },
+    ])
+
+    const response = await result.response
+    return response.text()
+  } catch (error) {
+    console.error("Error extracting text from PDF:", error)
+    throw new Error("Failed to extract text from PDF")
+  }
 }
 
-// Function to extract skills using regex patterns as fallback
+// Enhanced skill extraction with better patterns
 function extractSkillsWithRegex(text: string): string[] {
-  // Common tech skills regex patterns
-  const techSkillsPatterns = [
-    /\b(JavaScript|TypeScript|Python|Java|C\+\+|C#|Ruby|PHP|Swift|Kotlin|Go|Rust)\b/gi,
-    /\b(React|Angular|Vue|Node\.js|Express|Django|Flask|Spring|Laravel|ASP\.NET)\b/gi,
-    /\b(HTML|CSS|SASS|LESS|Bootstrap|Tailwind|Material-UI|Chakra UI)\b/gi,
-    /\b(SQL|MySQL|PostgreSQL|MongoDB|Firebase|DynamoDB|Cassandra|Redis)\b/gi,
-    /\b(AWS|Azure|GCP|Docker|Kubernetes|Jenkins|Git|CI\/CD|DevOps)\b/gi,
-    /\b(Machine Learning|Deep Learning|AI|NLP|Computer Vision|Data Science|Big Data)\b/gi,
-    /\b(Agile|Scrum|Kanban|JIRA|Confluence|Project Management)\b/gi,
+  const skillsPatterns = [
+    // Programming languages
+    /\b(JavaScript|TypeScript|Python|Java|C\+\+|C#|Ruby|PHP|Swift|Kotlin|Go|Rust|Scala|Perl|R|MATLAB|Objective-C)\b/gi,
+    // Frontend frameworks and libraries
+    /\b(React|Angular|Vue\.js|Svelte|Next\.js|Nuxt\.js|Gatsby|Ember\.js|Backbone\.js|jQuery)\b/gi,
+    // Backend frameworks
+    /\b(Node\.js|Express|Django|Flask|Spring|Laravel|ASP\.NET|Ruby on Rails|FastAPI|Koa)\b/gi,
+    // Databases
+    /\b(MySQL|PostgreSQL|MongoDB|Redis|Cassandra|DynamoDB|SQLite|Oracle|SQL Server|Firebase)\b/gi,
+    // Cloud and DevOps
+    /\b(AWS|Azure|GCP|Docker|Kubernetes|Jenkins|GitLab CI|GitHub Actions|Terraform|Ansible)\b/gi,
+    // Tools and technologies
+    /\b(Git|SVN|Webpack|Vite|Babel|ESLint|Prettier|Jest|Cypress|Selenium|Postman)\b/gi,
+    // Design and UI
+    /\b(Figma|Adobe XD|Sketch|Photoshop|Illustrator|InVision|Zeplin|Principle)\b/gi,
+    // Mobile development
+    /\b(React Native|Flutter|Xamarin|Ionic|Cordova|Swift|Kotlin|Android|iOS)\b/gi,
+    // Data and AI
+    /\b(TensorFlow|PyTorch|Pandas|NumPy|Scikit-learn|Jupyter|Tableau|Power BI)\b/gi,
+    // Web technologies
+    /\b(HTML5?|CSS3?|SASS|SCSS|LESS|Bootstrap|Tailwind|Material-UI|Chakra UI)\b/gi,
+    // Teaching and education
+    /\b(Педагогика|Teaching|Education|Curriculum|Lesson Planning|Classroom Management|Assessment)\b/gi,
+    // Cooking and culinary
+    /\b(Кулинария|Cooking|Culinary|Baking|Food Safety|Menu Planning|Kitchen Management)\b/gi,
+    // Medical and healthcare
+    /\b(Медицина|Medicine|Healthcare|Nursing|Patient Care|Medical Records|Diagnosis)\b/gi,
+    // Business and management
+    /\b(Management|Leadership|Project Management|Business Analysis|Strategic Planning|Team Building)\b/gi,
+    // Sales and marketing
+    /\b(Sales|Marketing|Customer Service|CRM|Lead Generation|Social Media|Content Marketing)\b/gi,
+    // Finance and accounting
+    /\b(Accounting|Finance|Bookkeeping|Tax Preparation|Financial Analysis|Budgeting)\b/gi,
   ]
 
-  // Russian tech skills patterns
-  const russianTechSkillsPatterns = [
-    /\b(Программирование|Разработка|Тестирование|Аналитика|Дизайн)\b/gi,
-    /\b(Фронтенд|Бэкенд|Фулстек|Веб-разработка|Мобильная разработка)\b/gi,
-    /\b(Базы данных|Сети|Безопасность|Облачные технологии)\b/gi,
-    /\b(Управление проектами|Методологии разработки|Командная работа)\b/gi,
-  ]
-
-  // Combine all patterns
-  const allPatterns = [...techSkillsPatterns, ...russianTechSkillsPatterns]
-
-  // Extract skills using regex
   const skills = new Set<string>()
 
-  allPatterns.forEach((pattern) => {
+  // Extract using patterns
+  skillsPatterns.forEach((pattern) => {
     const matches = text.match(pattern)
     if (matches) {
-      matches.forEach((match) => skills.add(match))
+      matches.forEach((match) => skills.add(match.trim()))
     }
   })
 
-  // Extract skills from common formats like "Skills: skill1, skill2, skill3"
-  const skillSectionRegex = /(?:навыки|skills|умения|технологии|technologies)[:：]([^.]*)/gi
-  const skillSections = text.match(skillSectionRegex)
+  // Extract from skills sections
+  const skillSectionRegex =
+    /(?:навыки|skills|умения|технологии|technologies|компетенции|expertise)[:：\s]*([^.]*?)(?:\n|$)/gi
+  const skillSections = [...text.matchAll(skillSectionRegex)]
 
-  if (skillSections) {
-    skillSections.forEach((section) => {
-      const skillList = section.split(/[:：]/)[1]
-      if (skillList) {
-        const individualSkills = skillList.split(/[,;、]/).map((s) => s.trim())
-        individualSkills.forEach((skill) => {
-          if (skill && skill.length > 1 && skill.length < 30) {
-            skills.add(skill)
-          }
-        })
-      }
-    })
+  skillSections.forEach((match) => {
+    const skillText = match[1]
+    if (skillText) {
+      const individualSkills = skillText
+        .split(/[,;•\n\r]/)
+        .map((s) => s.trim())
+        .filter((s) => s && s.length > 1 && s.length < 50)
+
+      individualSkills.forEach((skill) => skills.add(skill))
+    }
+  })
+
+  return Array.from(skills).slice(0, 20) // Limit to 20 skills
+}
+
+// Extract location information
+function extractLocation(text: string): string {
+  const locationPatterns = [
+    /(?:город|city|location|адрес|address)[:：\s]*([^,\n]*)/gi,
+    /\b(Алматы|Астана|Нур-Султан|Шымкент|Караганда|Акто��е|Тараз|Павлодар|Усть-Каменогорск|Семей|Атырау|Костанай|Кызылорда|Уральск|Петропавловск|Темиртау|Туркестан|Актау|Кокшетау|Талдыкорган)\b/gi,
+    /\b(Almaty|Astana|Nur-Sultan|Shymkent|Karaganda|Aktobe|Taraz|Pavlodar|Ust-Kamenogorsk|Semey|Atyrau|Kostanay|Kyzylorda|Uralsk|Petropavlovsk|Temirtau|Turkestan|Aktau|Kokshetau|Taldykorgan)\b/gi,
+  ]
+
+  for (const pattern of locationPatterns) {
+    const matches = text.match(pattern)
+    if (matches && matches.length > 0) {
+      return matches[0].replace(/^(город|city|location|адрес|address)[:：\s]*/i, "").trim()
+    }
   }
 
-  return Array.from(skills)
+  return ""
+}
+
+// Extract experience information
+function extractExperience(text: string): string {
+  const experiencePatterns = [
+    /(?:опыт работы|experience|стаж)[:：\s]*([^.\n]*)/gi,
+    /(\d+)\s*(?:лет|года?|years?|год)\s*(?:опыта|experience)/gi,
+    /(?:работал|worked|experience).*?(\d+)\s*(?:лет|года?|years?|год)/gi,
+  ]
+
+  for (const pattern of experiencePatterns) {
+    const matches = text.match(pattern)
+    if (matches && matches.length > 0) {
+      return matches[0].trim()
+    }
+  }
+
+  return ""
 }
 
 export async function POST(request: NextRequest) {
@@ -89,64 +173,77 @@ export async function POST(request: NextRequest) {
       ].includes(fileType)
     ) {
       return NextResponse.json(
-        { error: "Unsupported file type. Please upload PDF, DOCX, or TXT file" },
+        {
+          error: "Unsupported file type. Please upload PDF, DOCX, or TXT file",
+        },
         { status: 400 },
       )
     }
 
-    // Read file content
-    const fileBuffer = await file.arrayBuffer()
-    const fileContent = new TextDecoder().decode(fileBuffer)
+    let resumeText = ""
 
-    // Extract text from resume
-    const resumeText = extractTextFromResume(fileContent, fileType)
+    // Extract text based on file type
+    if (fileType === "application/pdf") {
+      resumeText = await extractTextFromPDF(file)
+    } else {
+      // For other file types, read as text
+      const fileBuffer = await file.arrayBuffer()
+      resumeText = new TextDecoder().decode(fileBuffer)
+    }
 
-    // First try to extract skills using regex as a quick fallback
-    const regexSkills = extractSkillsWithRegex(resumeText)
+    if (!resumeText || resumeText.trim().length < 50) {
+      return NextResponse.json({ error: "Could not extract meaningful text from the file" }, { status: 400 })
+    }
 
-    // Initialize default resumeData with regex-extracted skills
+    // Extract basic information using regex
+    const skills = extractSkillsWithRegex(resumeText)
+    const location = extractLocation(resumeText)
+    const experience = extractExperience(resumeText)
+
+    // Initialize default resumeData
     let resumeData = {
       name: "",
       email: "",
       phone: "",
-      skills: regexSkills,
-      experience: [],
+      location: location,
+      skills: skills,
+      experience: experience,
+      experienceYears: 0,
       education: [],
       summary: "",
     }
 
     try {
-      // Try to use Gemini for better extraction
-      // Get the Gemini model
+      // Use Gemini for structured extraction
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
-      // Generate content with Gemini
       const prompt = `
-        Extract structured information from this resume text and return ONLY a valid JSON object with no additional text or formatting. 
+        Analyze this resume text and extract structured information. Return ONLY a valid JSON object with no additional text.
         
         Required JSON structure:
         {
-          "name": "The person's full name",
+          "name": "Full name of the person",
           "email": "Email address",
           "phone": "Phone number",
-          "skills": ["Array", "of", "skills"],
-          "experience": [
-            {
-              "company": "Company name",
-              "position": "Job title",
-              "duration": "Time period",
-              "description": "Job description"
-            }
-          ],
+          "location": "City or location (prefer Kazakhstan cities)",
+          "skills": ["Array", "of", "technical", "skills"],
+          "experience": "Experience description",
+          "experienceYears": 0,
           "education": [
             {
-              "institution": "School/University name",
-              "degree": "Degree/Certificate",
-              "year": "Graduation year"
+              "institution": "University/School name",
+              "degree": "Degree or certificate",
+              "year": "Year or period"
             }
           ],
-          "summary": "A brief professional summary"
+          "summary": "Brief professional summary"
         }
+        
+        Special instructions:
+        - For experienceYears, extract the number of years of experience (0 if not found)
+        - Focus on technical skills for the skills array
+        - If location mentions Kazakhstan cities, use the Kazakh city name
+        - Keep skills relevant to IT/tech if this is a tech resume
         
         Resume text:
         ${resumeText.substring(0, 8000)}
@@ -154,53 +251,39 @@ export async function POST(request: NextRequest) {
 
       const result = await model.generateContent(prompt)
       const response = await result.response
-      const parsedResume = response.text()
+      let parsedResume = response.text()
 
-      // Clean the response to extract JSON
-      let cleanedResponse = parsedResume.trim()
-
-      // Remove markdown code blocks if present
-      if (cleanedResponse.startsWith("```json")) {
-        cleanedResponse = cleanedResponse.replace(/```json\n?/, "").replace(/\n?```$/, "")
-      } else if (cleanedResponse.startsWith("```")) {
-        cleanedResponse = cleanedResponse.replace(/```\n?/, "").replace(/\n?```$/, "")
+      // Clean the response
+      parsedResume = parsedResume.trim()
+      if (parsedResume.startsWith("```json")) {
+        parsedResume = parsedResume.replace(/```json\n?/, "").replace(/\n?```$/, "")
+      } else if (parsedResume.startsWith("```")) {
+        parsedResume = parsedResume.replace(/```\n?/, "").replace(/\n?```$/, "")
       }
 
-      // Parse the JSON response
-      const aiResumeData = JSON.parse(cleanedResponse)
+      const aiResumeData = JSON.parse(parsedResume)
 
-      // Merge AI-extracted data with regex-extracted skills
+      // Merge AI data with regex-extracted data
       resumeData = {
         ...aiResumeData,
-        // Combine AI-extracted skills with regex-extracted skills
-        skills: [...new Set([...(aiResumeData.skills || []), ...regexSkills])],
+        skills: [...new Set([...(aiResumeData.skills || []), ...skills])],
+        location: aiResumeData.location || location,
+        experience: aiResumeData.experience || experience,
+        experienceYears: aiResumeData.experienceYears || 0,
       }
     } catch (error) {
       console.error("Error using AI for resume parsing:", error)
-      // Continue with regex-extracted data if AI parsing fails
+      // Continue with regex-extracted data
     }
 
-    // If we still have no skills, add some default ones based on the file name
+    // Ensure we have some skills
     if (!resumeData.skills || resumeData.skills.length === 0) {
-      const fileName = file.name.toLowerCase()
-      const defaultSkills = []
+      resumeData.skills = ["Communication", "Teamwork", "Problem Solving"]
+    }
 
-      if (fileName.includes("dev") || fileName.includes("разраб")) {
-        defaultSkills.push("Programming", "Development", "Coding")
-      }
-      if (fileName.includes("web") || fileName.includes("веб")) {
-        defaultSkills.push("HTML", "CSS", "JavaScript")
-      }
-      if (fileName.includes("design") || fileName.includes("дизайн")) {
-        defaultSkills.push("UI/UX", "Figma", "Design")
-      }
-
-      // Add some generic skills if we still have none
-      if (defaultSkills.length === 0) {
-        defaultSkills.push("Communication", "Teamwork", "Problem Solving", "Time Management")
-      }
-
-      resumeData.skills = defaultSkills
+    // Ensure location is set (default to Almaty if not found)
+    if (!resumeData.location) {
+      resumeData.location = "Алматы"
     }
 
     return NextResponse.json({
