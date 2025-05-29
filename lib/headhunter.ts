@@ -4,7 +4,7 @@
 export const HH_CONFIG = {
   clientId: "H0VJ3K42LT3N2ERNF62MBQ9OTHKLHD9U0RCQLCNCAM5AHF8B70T3HIV7VS6N2A16",
   clientSecret: "SKH7E7A6URGBJ2L73MU40NG2UG41M1EADGHT24H8OLC71H9NT0LNO6O2HUPQKD70",
-  redirectUri: "https://27e9-5-76-160-2.ngrok-free.app/auth/callback",
+  redirectUri: "https://job-swipe-ai.vercel.app/auth/callback",
   authUrl: "https://hh.ru/oauth/authorize",
   tokenUrl: "https://hh.ru/oauth/token",
   apiBaseUrl: "https://api.hh.ru",
