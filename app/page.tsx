@@ -41,7 +41,7 @@ export default function Home() {
 
           <div className="space-y-4">
             <h1 className="text-4xl font-bold tracking-tight text-primary">JobSwipe</h1>
-            <p className="text-lg text-muted-foreground">Найди работу мечты одним свайпом</p>
+            <p className="text-lg text-muted-foreground">Бір сипау арқылы арманыңыздағы жұмысты табыңыз</p>
           </div>
 
           <Button
@@ -49,14 +49,14 @@ export default function Home() {
               onClick={() => setIsResumeBuilderOpen(true)}
             >
               <FileText className="h-5 w-5" />
-              Создать резюме
+              Түйіндеме жасаңыз
             </Button>
 
           <div className="w-full space-y-4">
             <Button className="w-full  h-14 text-lg gap-2 bg-gradient-to-r from-blue-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-500 border-none">
               <label className="flex items-center gap-2 cursor-pointer">
                 <Upload className="h-5 w-5" />
-                Загрузить резюме
+                Түйіндемені жүктеп салу
                 <input type="file" className="hidden" accept=".pdf,.docx,.doc,.txt" onChange={handleFileChange} />
               </label>
             </Button>
@@ -67,7 +67,7 @@ export default function Home() {
           </div>
 
           <p className="text-sm text-muted-foreground pt-4">
-            Загрузите резюме или подключите HeadHunter, чтобы получить персонализированные предложения
+            Резюмеңізді жүктеп салыңыз немесе жеке ұсыныстарды алу үшін HeadHunter қызметіне қосылыңыз
           </p>
         </div>
       </div>

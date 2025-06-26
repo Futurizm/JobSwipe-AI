@@ -60,7 +60,7 @@ export function HHAuthStatus({ onLoginSuccess }: HHAuthStatusProps) {
     return (
       <Button variant="outline" disabled className="w-full h-14 text-lg gap-2 border-2">
         <RefreshCw className="h-5 w-5 animate-spin" />
-        Проверка статуса авторизации
+        Авторизация күйін тексеру
       </Button>
     )
   }
@@ -70,12 +70,12 @@ export function HHAuthStatus({ onLoginSuccess }: HHAuthStatusProps) {
       <div className="space-y-2">
         <div className="p-3 bg-success-500/10 rounded-lg text-center">
           <p className="text-sm">
-            Вы авторизованы в HeadHunter как <span className="font-medium">{userName}</span>
+            Сіз HeadHunter жүйесіне ретінде кірдіңіз <span className="font-medium">{userName}</span>
           </p>
         </div>
         <Button variant="outline" className="w-full gap-2" onClick={handleLogout}>
           <LogOut className="h-5 w-5" />
-          Выйти из HeadHunter
+          HeadHunter жүйесінен шығу
         </Button>
       </div>
     )
@@ -84,7 +84,7 @@ export function HHAuthStatus({ onLoginSuccess }: HHAuthStatusProps) {
   return (
     <Button variant="outline" className="w-full h-14 text-lg gap-2 border-2 border-primary" onClick={handleLogin}>
       <LogIn className="h-5 w-5" />
-      Подключить HeadHunter
+      HeadHunter қолданбасын қосыңыз
     </Button>
   )
 }
